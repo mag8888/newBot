@@ -16,6 +16,7 @@ const users = new Map(); // userId -> { id, name, photo, authorized }
 // Функция отправки сообщения
 async function sendMessage(chatId, text, replyMarkup = null) {
   try {
+    console.log('📤 Отправляем сообщение:', { chatId, text: text.substring(0, 100) + '...' });
     const response = await fetch(`${TELEGRAM_API}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -26,7 +27,9 @@ async function sendMessage(chatId, text, replyMarkup = null) {
         reply_markup: replyMarkup
       })
     });
-    return await response.json();
+    const result = await response.json();
+    console.log('📤 Ответ от Telegram API:', result);
+    return result;
   } catch (error) {
     console.error('❌ Ошибка отправки сообщения:', error);
     return null;
@@ -137,13 +140,15 @@ app.post('/webhook', async (req, res) => {
               photo: userData.photo
             }))}`;
             
-            await sendMessage(chatId, 
+            console.log('📤 Отправляем сообщение с ссылкой:', gameLink);
+            const messageResult = await sendMessage(chatId, 
               `✅ <b>Авторизация успешна!</b>\n\n` +
               `👤 Пользователь: ${userData.name}\n` +
               `🆔 ID: ${userData.id}\n\n` +
               `🎮 <a href="${gameLink}">Нажмите здесь чтобы войти в лобби</a>\n\n` +
               `Или скопируйте ссылку:\n<code>${gameLink}</code>`
             );
+            console.log('📤 Результат отправки сообщения:', messageResult);
             
             // Отвечаем на callback
             try {
