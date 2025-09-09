@@ -2,7 +2,7 @@ const express = require('express');
 const fetch = require('node-fetch');
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 8080;
 const BOT_TOKEN = process.env.BOT_TOKEN || '8480976603:AAGwXGSfMAMQkndmNX7JFe2aZDI6zSTXc_4';
 const GAME_URL = 'https://energy888.onrender.com';
 
@@ -299,8 +299,21 @@ app.get('/', (req, res) => {
   });
 });
 
-app.listen(PORT, () => {
+// Обработка ошибок
+process.on('uncaughtException', (error) => {
+  console.error('❌ Uncaught Exception:', error);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+  process.exit(1);
+});
+
+// Запуск сервера
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Menu Bot Server запущен на порту ${PORT}`);
   console.log(`🤖 Bot Token: ${BOT_TOKEN ? '✅ Установлен' : '❌ Не установлен'}`);
   console.log(`🎮 Game URL: ${GAME_URL}`);
+  console.log(`🌍 Server listening on 0.0.0.0:${PORT}`);
 });
