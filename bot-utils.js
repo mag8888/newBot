@@ -4,7 +4,7 @@ const fetch = require('node-fetch');
 class BotUtils {
   constructor() {
     this.botToken = process.env.BOT_TOKEN || '8480976603:AAGwXGSfMAMQkndmNX7JFe2aZDI6zSTXc_4';
-    this.apiUrl = `https://api.telegram.org/bot${this.botToken}`;
+    this.apiUrl = `ьоhttps://api.telegram.org/bot${this.botToken}`;
   }
 
   // Получить информацию о webhook
