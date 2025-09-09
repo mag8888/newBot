@@ -139,8 +139,8 @@ app.post('/webhook', async (req, res) => {
             // Создаем токен авторизации
             const authToken = `tg_${userId}_${Date.now()}`;
             
-            // Отправляем ссылку на лобби с авторизацией
-            const gameLink = `${GAME_URL}/simple-rooms?auth=telegram&token=${authToken}&user=${encodeURIComponent(JSON.stringify({
+            // Отправляем ссылку на авторизацию, которая перенаправит в лобби
+            const gameLink = `${GAME_URL}/simple-auth?auth=telegram&token=${authToken}&user=${encodeURIComponent(JSON.stringify({
               id: userData.id,
               name: userData.name,
               username: userData.username,
@@ -152,7 +152,7 @@ app.post('/webhook', async (req, res) => {
               `✅ <b>Авторизация успешна!</b>\n\n` +
               `👤 Пользователь: ${userData.name}\n` +
               `🆔 ID: ${userData.id}\n\n` +
-              `🎮 <a href="${gameLink}">Нажмите здесь чтобы войти в лобби</a>\n\n` +
+              `🎮 <a href="${gameLink}">Нажмите здесь чтобы войти в игру</a>\n\n` +
               `Или скопируйте ссылку:\n<code>${gameLink}</code>`
             );
             console.log('📤 Результат отправки сообщения:', messageResult);
