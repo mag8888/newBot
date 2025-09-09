@@ -111,7 +111,8 @@ app.post('/webhook', async (req, res) => {
       const userId = callback.from.id;
       const data = callback.data;
       
-      console.log('🔘 Callback получен:', { userId, data });
+      console.log('🔘 Callback получен:', { userId, data, chatId });
+      console.log('🔘 Полный callback объект:', JSON.stringify(callback, null, 2));
       
       if (data.startsWith('play_')) {
         const targetUserId = data.split('_')[1];
@@ -145,20 +146,28 @@ app.post('/webhook', async (req, res) => {
             );
             
             // Отвечаем на callback
-            await fetch(`${TELEGRAM_API}/answerCallbackQuery`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                callback_query_id: callback.id,
-                text: '✅ Авторизация успешна!'
-              })
-            });
+            try {
+              const answerResponse = await fetch(`${TELEGRAM_API}/answerCallbackQuery`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  callback_query_id: callback.id,
+                  text: '✅ Авторизация успешна!'
+                })
+              });
+              console.log('✅ Callback ответ отправлен:', await answerResponse.json());
+            } catch (error) {
+              console.error('❌ Ошибка отправки callback ответа:', error);
+            }
           } else {
             await sendMessage(chatId, '❌ Ошибка: данные пользователя не найдены');
           }
         } else {
           await sendMessage(chatId, '❌ Ошибка: неверный пользователь');
         }
+      } else {
+        console.log('❌ Неизвестный callback data:', data);
+        await sendMessage(chatId, '❌ Неизвестная команда');
       }
     }
     
