@@ -7,7 +7,9 @@
     "start": "node menu-bot.js",
     "dev": "node menu-bot.js",
     "advanced": "node advanced-bot.js",
-    "simple": "node simple-bot.js"
+    "simple": "node simple-bot.js",
+    "setup-webhook": "node setup-webhook.js",
+    "check-bot": "node bot-utils.js"
   },
   "dependencies": {
     "express": "^4.18.2",
