@@ -1,0 +1,19 @@
+{
+  "name": "energy888-telegram-bot",
+  "version": "1.0.0",
+  "description": "Simple Telegram Bot for Energy of Money Game",
+  "main": "simple-bot.js",
+  "scripts": {
+    "start": "node simple-bot.js",
+    "dev": "node simple-bot.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": ["telegram", "bot", "game", "energy", "money"],
+  "author": "Energy of Money Team",
+  "license": "MIT"
+}
