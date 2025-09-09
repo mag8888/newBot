@@ -1,6 +1,6 @@
 {
   "name": "energy-money-advanced-bot",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "description": "Advanced Telegram Bot for Energy of Money Game with Menu and Partnership Features",
   "main": "menu-bot.js",
   "scripts": {
