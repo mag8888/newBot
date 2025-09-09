@@ -1,19 +1,21 @@
 {
-  "name": "energy888-telegram-bot",
-  "version": "1.0.0",
-  "description": "Simple Telegram Bot for Energy of Money Game",
-  "main": "simple-bot.js",
+  "name": "energy-money-advanced-bot",
+  "version": "2.0.0",
+  "description": "Advanced Telegram Bot for Energy of Money Game with Menu and Partnership Features",
+  "main": "advanced-bot.js",
   "scripts": {
-    "start": "node simple-bot.js",
-    "dev": "node simple-bot.js"
+    "start": "node advanced-bot.js",
+    "dev": "node advanced-bot.js",
+    "simple": "node simple-bot.js"
   },
   "dependencies": {
-    "express": "^4.18.2"
+    "express": "^4.18.2",
+    "node-fetch": "^2.7.0"
   },
   "engines": {
     "node": ">=18.0.0"
   },
-  "keywords": ["telegram", "bot", "game", "energy", "money"],
+  "keywords": ["telegram", "bot", "game", "energy", "money", "menu", "partnership"],
   "author": "Energy of Money Team",
   "license": "MIT"
 }
