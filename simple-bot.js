@@ -17,15 +17,22 @@ const users = new Map(); // userId -> { id, name, photo, authorized }
 async function sendMessage(chatId, text, replyMarkup = null) {
   try {
     console.log('📤 Отправляем сообщение:', { chatId, text: text.substring(0, 100) + '...' });
+    
+    const messageData = {
+      chat_id: chatId,
+      text: text,
+      parse_mode: 'HTML'
+    };
+    
+    // Добавляем reply_markup только если он передан
+    if (replyMarkup) {
+      messageData.reply_markup = replyMarkup;
+    }
+    
     const response = await fetch(`${TELEGRAM_API}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: chatId,
-        text: text,
-        parse_mode: 'HTML',
-        reply_markup: replyMarkup
-      })
+      body: JSON.stringify(messageData)
     });
     const result = await response.json();
     console.log('📤 Ответ от Telegram API:', result);
