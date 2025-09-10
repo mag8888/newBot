@@ -246,10 +246,10 @@ app.post('/webhook', async (req, res) => {
             
             const gameLink = `${GAME_URL}/simple-auth?auth=telegram&token=${authToken}&user=${encodeURIComponent(JSON.stringify({
               id: userData.id,
-              name: userData.name,
+              first_name: userData.name,
               username: userData.username,
-              photo: userData.photo
-            }))}`;
+              photo_url: userData.photo
+            }))}&socket=${encodeURIComponent('https://energy888-advanced-socket.onrender.com')}`;
 
             await sendMessage(chatId, 
               `🎮 <b>Запуск игры</b>\n\n` +
