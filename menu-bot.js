@@ -42,14 +42,18 @@ async function sendMessage(chatId, text, replyMarkup = null) {
   }
 }
 
-// Функция отправки фото
-async function sendPhoto(chatId, photoUrl) {
+// Функция отправки фото с подписью
+async function sendPhoto(chatId, photoUrl, caption = '') {
   try {
-    console.log('📸 Отправляем фото:', { chatId, photoUrl });
+    console.log('📸 Отправляем фото с подписью:', { chatId, photoUrl, caption: caption.substring(0, 50) + '...' });
     const messageData = {
       chat_id: chatId,
-      photo: photoUrl
+      photo: photoUrl,
+      parse_mode: 'HTML'
     };
+    if (caption) {
+      messageData.caption = caption;
+    }
     const response = await fetch(`${TELEGRAM_API}/sendPhoto`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -228,17 +232,16 @@ app.post('/webhook', async (req, res) => {
       if (text === '/start') {
         await sendMessage(chatId, getWelcomeMessage(), getMainMenu());
       } else if (text === '📖 О проекте') {
-        await sendMessage(chatId, getAboutMessage(), getMainMenu());
-        // Отправляем картинку
-        await sendPhoto(chatId, 'https://drive.google.com/uc?export=view&id=1DVFh1fEm5CG0crg_OYWKBrLIjnmgwjm8');
+        // Отправляем картинку с текстом
+        await sendPhoto(chatId, 'https://drive.google.com/uc?export=view&id=1DVFh1fEm5CG0crg_OYWKBrLIjnmgwjm8', getAboutMessage());
+        await sendMessage(chatId, 'Выберите действие:', getMainMenu());
       } else if (text === '🌐 Сообщество') {
-        await sendMessage(chatId, getCommunityMessage(), getMainMenu());
-        // Отправляем картинку
-        await sendPhoto(chatId, 'https://drive.google.com/uc?export=view&id=1oZKXefyAPKIgxQ0tYrewUhhb5cewtUWS');
+        // Отправляем картинку с текстом
+        await sendPhoto(chatId, 'https://drive.google.com/uc?export=view&id=1oZKXefyAPKIgxQ0tYrewUhhb5cewtUWS', getCommunityMessage());
+        await sendMessage(chatId, 'Выберите действие:', getMainMenu());
       } else if (text === '👥 Получить клиентов') {
-        await sendMessage(chatId, getClientsMessage(), getMainMenu());
-        // Отправляем картинку
-        await sendPhoto(chatId, 'https://drive.google.com/uc?export=view&id=1P_RJ8gYipADlTL8zHVXmyEdgzTbwJn_8');
+        // Отправляем картинку с текстом
+        await sendPhoto(chatId, 'https://drive.google.com/uc?export=view&id=1P_RJ8gYipADlTL8zHVXmyEdgzTbwJn_8', getClientsMessage());
         
         // Отправляем дополнительное сообщение с заявкой
         setTimeout(async () => {
@@ -251,9 +254,8 @@ app.post('/webhook', async (req, res) => {
           );
         }, 2000);
       } else if (text === '💰 Доход') {
-        await sendMessage(chatId, getEarnMessage(), getMainMenu());
-        // Отправляем картинку
-        await sendPhoto(chatId, 'https://drive.google.com/uc?export=view&id=1P_RJ8gYipADlTL8zHVXmyEdgzTbwJn_8');
+        // Отправляем картинку с текстом
+        await sendPhoto(chatId, 'https://drive.google.com/uc?export=view&id=1P_RJ8gYipADlTL8zHVXmyEdgzTbwJn_8', getEarnMessage());
         
         // Отправляем дополнительное сообщение с заявкой
         setTimeout(async () => {
@@ -266,9 +268,8 @@ app.post('/webhook', async (req, res) => {
           );
         }, 2000);
       } else if (text === '🎮 Играть') {
-        await sendMessage(chatId, getPlayMessage(), getMainMenu());
-        // Отправляем картинку
-        await sendPhoto(chatId, 'https://drive.google.com/uc?export=view&id=1TKi83s951WoB4FRONr8DnAITmZ8jCyfA');
+        // Отправляем картинку с текстом
+        await sendPhoto(chatId, 'https://drive.google.com/uc?export=view&id=1TKi83s951WoB4FRONr8DnAITmZ8jCyfA', getPlayMessage());
         
         // Отправляем ссылку на игру
         setTimeout(async () => {
