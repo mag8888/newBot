@@ -42,6 +42,28 @@ async function sendMessage(chatId, text, replyMarkup = null) {
   }
 }
 
+// Функция отправки фото
+async function sendPhoto(chatId, photoUrl) {
+  try {
+    console.log('📸 Отправляем фото:', { chatId, photoUrl });
+    const messageData = {
+      chat_id: chatId,
+      photo: photoUrl
+    };
+    const response = await fetch(`${TELEGRAM_API}/sendPhoto`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(messageData)
+    });
+    const result = await response.json();
+    console.log('📸 Ответ от Telegram API (фото):', result);
+    return result;
+  } catch (error) {
+    console.error('❌ Ошибка отправки фото:', error);
+    return null;
+  }
+}
+
 // Главное меню (Reply Keyboard)
 function getMainMenu() {
   return {
@@ -54,7 +76,7 @@ function getMainMenu() {
         { text: '👥 Получить клиентов' }
       ],
       [
-        { text: '💰 Заработать' },
+        { text: '💰 Доход' },
         { text: '🎮 Играть' }
       ]
     ],
@@ -123,9 +145,9 @@ function getClientsMessage() {
 Нажми кнопку "👥 Получить клиентов" еще раз для подачи заявки!`;
 }
 
-// Заработать
+// Доход
 function getEarnMessage() {
-  return `💰 <b>Заработать</b>
+  return `💰 <b>Доход</b>
 
 Хочешь зарабатывать вместе с «<b>Энергией Денег</b>»?  
 Стань партнёром проекта и получай доход, играя и помогая другим людям развиваться.
@@ -138,7 +160,7 @@ function getEarnMessage() {
 
 🚀 <b>Начни зарабатывать уже сегодня!</b>
 
-Нажми кнопку "💰 Заработать" еще раз для подачи заявки!`;
+Нажми кнопку "💰 Доход" еще раз для подачи заявки!`;
 }
 
 // Играть
@@ -207,10 +229,16 @@ app.post('/webhook', async (req, res) => {
         await sendMessage(chatId, getWelcomeMessage(), getMainMenu());
       } else if (text === '📖 О проекте') {
         await sendMessage(chatId, getAboutMessage(), getMainMenu());
+        // Отправляем картинку
+        await sendPhoto(chatId, 'https://drive.google.com/uc?export=view&id=1DVFh1fEm5CG0crg_OYWKBrLIjnmgwjm8');
       } else if (text === '🌐 Сообщество') {
         await sendMessage(chatId, getCommunityMessage(), getMainMenu());
+        // Отправляем картинку
+        await sendPhoto(chatId, 'https://drive.google.com/uc?export=view&id=1oZKXefyAPKIgxQ0tYrewUhhb5cewtUWS');
       } else if (text === '👥 Получить клиентов') {
         await sendMessage(chatId, getClientsMessage(), getMainMenu());
+        // Отправляем картинку
+        await sendPhoto(chatId, 'https://drive.google.com/uc?export=view&id=1P_RJ8gYipADlTL8zHVXmyEdgzTbwJn_8');
         
         // Отправляем дополнительное сообщение с заявкой
         setTimeout(async () => {
@@ -222,8 +250,10 @@ app.post('/webhook', async (req, res) => {
             getMainMenu()
           );
         }, 2000);
-      } else if (text === '💰 Заработать') {
+      } else if (text === '💰 Доход') {
         await sendMessage(chatId, getEarnMessage(), getMainMenu());
+        // Отправляем картинку
+        await sendPhoto(chatId, 'https://drive.google.com/uc?export=view&id=1P_RJ8gYipADlTL8zHVXmyEdgzTbwJn_8');
         
         // Отправляем дополнительное сообщение с заявкой
         setTimeout(async () => {
@@ -237,6 +267,8 @@ app.post('/webhook', async (req, res) => {
         }, 2000);
       } else if (text === '🎮 Играть') {
         await sendMessage(chatId, getPlayMessage(), getMainMenu());
+        // Отправляем картинку
+        await sendPhoto(chatId, 'https://drive.google.com/uc?export=view&id=1TKi83s951WoB4FRONr8DnAITmZ8jCyfA');
         
         // Отправляем ссылку на игру
         setTimeout(async () => {
