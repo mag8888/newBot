@@ -3,7 +3,7 @@ const fetch = require('node-fetch');
 const { MongoClient } = require('mongodb');
 
 // Версия бота
-const BOT_VERSION = 'v3.2.0-enhanced-bonus-messages';
+const BOT_VERSION = 'v3.2.1-fix-referral-system';
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -188,24 +188,39 @@ async function processReferralBonus(inviterId, inviteeId, inviteeData) {
       return false;
     }
     
-    // Проверяем, что приглашенный новый
+    // Проверяем, что приглашенный новый или еще не имеет реферальной связи
     const existingUser = await db.collection('users').findOne({ telegramId: inviteeId });
-    if (existingUser) {
-      console.log('❌ Пользователь уже существует:', inviteeId);
+    if (existingUser && existingUser.referredBy) {
+      console.log('❌ Пользователь уже был приглашен:', inviteeId);
       return false;
     }
     
-    // Создаем нового пользователя с реферальной связью
-    await db.collection('users').insertOne({
-      telegramId: inviteeId,
-      username: inviteeData.username,
-      firstName: inviteeData.firstName,
-      referredBy: inviterId,
-      balance: 0,
-      referralsCount: 0,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    });
+    if (existingUser) {
+      // Обновляем существующего пользователя с реферальной связью
+      await db.collection('users').updateOne(
+        { telegramId: inviteeId },
+        { 
+          $set: { 
+            referredBy: inviterId,
+            updatedAt: new Date()
+          }
+        }
+      );
+      console.log('✅ Обновлен существующий пользователь с реферальной связью');
+    } else {
+      // Создаем нового пользователя с реферальной связью
+      await db.collection('users').insertOne({
+        telegramId: inviteeId,
+        username: inviteeData.username,
+        firstName: inviteeData.firstName,
+        referredBy: inviterId,
+        balance: 0,
+        referralsCount: 0,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+      console.log('✅ Создан новый пользователь с реферальной связью');
+    }
     
     // Начисляем бонус приглашающему
     await db.collection('users').updateOne(
