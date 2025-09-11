@@ -3,7 +3,7 @@ const fetch = require('node-fetch');
 const { MongoClient } = require('mongodb');
 
 // Версия бота
-const BOT_VERSION = 'v2.3.4-fix-db-parameter';
+const BOT_VERSION = 'v2.3.5-fix-db-collections';
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -30,6 +30,32 @@ async function connectToMongoDB() {
     await client.connect();
     db = client.db('energy888');
     console.log('✅ MongoDB подключена');
+    
+    // Создаем коллекции если их нет
+    try {
+      await db.createCollection('users');
+      console.log('✅ Коллекция users создана');
+    } catch (e) {
+      console.log('ℹ️ Коллекция users уже существует');
+    }
+    
+    try {
+      await db.createCollection('transactions');
+      console.log('✅ Коллекция transactions создана');
+    } catch (e) {
+      console.log('ℹ️ Коллекция transactions уже существует');
+    }
+    
+    // Создаем индексы для быстрого поиска
+    try {
+      await db.collection('users').createIndex({ telegramId: 1 }, { unique: true });
+      await db.collection('users').createIndex({ username: 1 });
+      await db.collection('users').createIndex({ referredBy: 1 });
+      console.log('✅ Индексы созданы');
+    } catch (e) {
+      console.log('ℹ️ Индексы уже существуют');
+    }
+    
   } catch (error) {
     console.error('❌ Ошибка подключения к MongoDB:', error);
   }
@@ -401,6 +427,11 @@ app.post('/webhook', async (req, res) => {
         const inviterId = parseInt(refId, 10);
         if (inviterId && inviterId !== userId) {
           try {
+            if (!db) {
+              console.error('❌ База данных не подключена');
+              await sendMessage(chatId, '❌ Ошибка: база данных не подключена', getMainMenu());
+              return;
+            }
             // Проверяем, что приглашающий существует
             const inviter = await db.collection('users').findOne({ telegramId: inviterId });
             if (inviter) {
