@@ -3,7 +3,7 @@ const fetch = require('node-fetch');
 const { MongoClient } = require('mongodb');
 
 // Версия бота
-const BOT_VERSION = 'v2.3.0-admin-bonus';
+const BOT_VERSION = 'v2.3.1-fix-duplicate-message';
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -11,7 +11,7 @@ const BOT_TOKEN = process.env.BOT_TOKEN || '8480976603:AAGwXGSfMAMQkndmNX7JFe2aZ
 const GAME_URL = 'https://botenergy-7to1-production.up.railway.app';
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/energy888';
 const REF_BONUS = parseInt(process.env.REF_BONUS || '10', 10);
-const ADMIN_IDS = [123456789]; // Замените на ваш Telegram ID
+const ADMIN_IDS = [6840451873]; // ID пользователя из скриншота
 
 const TELEGRAM_API = `https://api.telegram.org/bot${BOT_TOKEN}`;
 
@@ -474,38 +474,6 @@ app.post('/webhook', async (req, res) => {
       } else if (text === '💰 Доход') {
         // Отправляем картинку с текстом
         await sendPhoto(chatId, 'https://drive.google.com/uc?export=view&id=1P_RJ8gYipADlTL8zHVXmyEdgzTbwJn_8', await getEarnMessage(userId));
-        
-        // Отправляем дополнительное сообщение с реферальной программой
-        setTimeout(async () => {
-          const refLink = `https://t.me/energy_m_bot?start=ref_${userId}`;
-          
-          // Получаем данные пользователя из БД
-          let userData = { balance: 0, referralsCount: 0 };
-          try {
-            if (db) {
-              const user = await db.collection('users').findOne({ telegramId: userId });
-              if (user) {
-                userData = { balance: user.balance || 0, referralsCount: user.referralsCount || 0 };
-              }
-            }
-          } catch (error) {
-            console.error('❌ Ошибка получения данных пользователя:', error);
-          }
-          
-          await sendMessage(chatId, 
-            '💰 <b>Реферальная программа</b>\n\n' +
-            '💵 <b>Ваш баланс:</b> $' + userData.balance + '\n' +
-            '👥 <b>Приглашено:</b> ' + userData.referralsCount + ' человек\n\n' +
-            '🔗 <b>Ваша ссылка:</b>\n<code>' + refLink + '</code>\n\n' +
-            '💡 <b>Как это работает:</b>\n' +
-            '• Отправьте ссылку другу\n' +
-            '• Он переходит и жмёт Start\n' +
-            '• Вы получаете $' + REF_BONUS + ' на баланс\n' +
-            '• Бонусы можно тратить в игре и турнирах\n\n' +
-            '🎯 <b>Начните приглашать прямо сейчас!</b>',
-            getMainMenu()
-          );
-        }, 2000);
       } else if (text === '📤 Пригласить') {
         // Отправляем реферальную ссылку в ЛС
         const refLink = `https://t.me/energy_m_bot?start=ref_${userId}`;
