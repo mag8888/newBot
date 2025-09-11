@@ -5,7 +5,7 @@ const PORT = process.env.PORT || 3001;
 // Telegram Bot
 const BOT_TOKEN = process.env.BOT_TOKEN || '8480976603:AAGwXGSfMAMQkndmNX7JFe2aZDI6zSTXc_4';
 const TELEGRAM_API = `https://api.telegram.org/bot${BOT_TOKEN}`;
-const GAME_URL = 'https://energy888.onrender.com';
+const GAME_URL = 'https://botenergy-7to1-production.up.railway.app';
 
 // Middleware
 app.use(express.json());
