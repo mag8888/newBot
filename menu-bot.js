@@ -1,5 +1,6 @@
 const express = require('express');
 const fetch = require('node-fetch');
+const { MongoClient } = require('mongodb');
 
 // Версия бота
 const BOT_VERSION = 'v2.1.3-ad4f113';
@@ -8,12 +9,34 @@ const app = express();
 const PORT = process.env.PORT || 8080;
 const BOT_TOKEN = process.env.BOT_TOKEN || '8480976603:AAGwXGSfMAMQkndmNX7JFe2aZDI6zSTXc_4';
 const GAME_URL = 'https://botenergy-7to1-production.up.railway.app';
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/energy888';
+const REF_BONUS = parseInt(process.env.REF_BONUS || '10', 10);
 
 const TELEGRAM_API = `https://api.telegram.org/bot${BOT_TOKEN}`;
 
 app.use(express.json());
 
-// Хранилище пользователей
+// MongoDB
+let db;
+const client = new MongoClient(MONGODB_URI, {
+  maxPoolSize: 5,
+  serverSelectionTimeoutMS: 5000,
+  socketTimeoutMS: 45000
+});
+
+async function connectToMongoDB() {
+  try {
+    await client.connect();
+    db = client.db('energy888');
+    console.log('✅ MongoDB подключена');
+  } catch (error) {
+    console.error('❌ Ошибка подключения к MongoDB:', error);
+  }
+}
+
+connectToMongoDB();
+
+// Хранилище пользователей (кеш)
 const users = new Map();
 
 // Функция отправки сообщения
@@ -152,8 +175,9 @@ function getClientsMessage() {
 Нажми кнопку "👥 Получить клиентов" еще раз для подачи заявки!`;
 }
 
-// Доход
-function getEarnMessage() {
+// Доход (реферальная программа)
+function getEarnMessage(userId) {
+  const refLink = `https://t.me/energy_m_bot?start=ref_${userId}`;
   return `💰 <b>Доход</b>
 
 Хочешь зарабатывать вместе с «<b>Энергией Денег</b>»?  
@@ -234,6 +258,59 @@ app.post('/webhook', async (req, res) => {
 
       if (text === '/start') {
         await sendMessage(chatId, getWelcomeMessage(), getMainMenu());
+      } else if (text.startsWith('/start ref_')) {
+        // Обработка реферальной ссылки
+        const refId = text.replace('/start ref_', '');
+        const inviterId = parseInt(refId, 10);
+        if (inviterId && inviterId !== userId) {
+          try {
+            // Проверяем, что приглашающий существует
+            const inviter = await db.collection('users').findOne({ telegramId: inviterId });
+            if (inviter) {
+              // Проверяем, что приглашённый новый
+              const existingUser = await db.collection('users').findOne({ telegramId: userId });
+              if (!existingUser) {
+                // Создаём нового пользователя
+                await db.collection('users').insertOne({
+                  telegramId: userId,
+                  username: message.from.username,
+                  firstName: message.from.first_name,
+                  referredBy: inviterId,
+                  balance: 0,
+                  referralsCount: 0,
+                  createdAt: new Date(),
+                  updatedAt: new Date()
+                });
+                // Начисляем бонус пригласившему
+                await db.collection('users').updateOne(
+                  { telegramId: inviterId },
+                  { $inc: { balance: REF_BONUS, referralsCount: 1 }, $set: { updatedAt: new Date() } }
+                );
+                // Записываем транзакцию
+                await db.collection('transactions').insertOne({
+                  type: 'referral_bonus',
+                  amount: REF_BONUS,
+                  inviterId,
+                  inviteeId: userId,
+                  createdAt: new Date()
+                });
+                // Уведомляем пригласившего
+                await sendMessage(inviterId, `🎉 +$${REF_BONUS} за приглашённого @${message.from.username || 'пользователя'}!`);
+                // Приветствуем нового пользователя
+                await sendMessage(chatId, `🎉 Добро пожаловать! Вы пришли по приглашению.`, getMainMenu());
+              } else {
+                await sendMessage(chatId, getWelcomeMessage(), getMainMenu());
+              }
+            } else {
+              await sendMessage(chatId, getWelcomeMessage(), getMainMenu());
+            }
+          } catch (error) {
+            console.error('❌ Ошибка обработки реферальной ссылки:', error);
+            await sendMessage(chatId, getWelcomeMessage(), getMainMenu());
+          }
+        } else {
+          await sendMessage(chatId, getWelcomeMessage(), getMainMenu());
+        }
       } else if (text === '📖 О проекте') {
         // Отправляем картинку с текстом
         await sendPhoto(chatId, 'https://drive.google.com/uc?export=view&id=1DVFh1fEm5CG0crg_OYWKBrLIjnmgwjm8', getAboutMessage());
@@ -258,15 +335,21 @@ app.post('/webhook', async (req, res) => {
         }, 2000);
       } else if (text === '💰 Доход') {
         // Отправляем картинку с текстом
-        await sendPhoto(chatId, 'https://drive.google.com/uc?export=view&id=1P_RJ8gYipADlTL8zHVXmyEdgzTbwJn_8', getEarnMessage());
+        await sendPhoto(chatId, 'https://drive.google.com/uc?export=view&id=1P_RJ8gYipADlTL8zHVXmyEdgzTbwJn_8', getEarnMessage(userId));
         
-        // Отправляем дополнительное сообщение с заявкой
+        // Отправляем дополнительное сообщение с реферальной программой
         setTimeout(async () => {
+          const refLink = `https://t.me/energy_m_bot?start=ref_${userId}`;
           await sendMessage(chatId, 
-            '📝 <b>Оставить заявку</b>\n\n' +
-            '✅ <b>Заявка принята!</b> Наш менеджер свяжется с вами для обсуждения возможностей заработка.\n\n' +
-            '💼 Мы рассмотрим ваши навыки и предложим подходящие варианты сотрудничества.\n\n' +
-            '⏰ Ожидайте звонка в течение 24 часов!',
+            '💰 <b>Реферальная программа</b>\n\n' +
+            'Приглашайте друзей и получайте $' + REF_BONUS + ' за каждого нового участника!\n\n' +
+            '🔗 <b>Ваша ссылка:</b>\n<code>' + refLink + '</code>\n\n' +
+            '💡 <b>Как это работает:</b>\n' +
+            '• Отправьте ссылку другу\n' +
+            '• Он переходит и жмёт Start\n' +
+            '• Вы получаете $' + REF_BONUS + ' на баланс\n' +
+            '• Бонусы можно тратить в игре и турнирах\n\n' +
+            '🎯 <b>Начните приглашать прямо сейчас!</b>',
             getMainMenu()
           );
         }, 2000);
