@@ -3,7 +3,7 @@ const fetch = require('node-fetch');
 const { MongoClient } = require('mongodb');
 
 // Версия бота
-const BOT_VERSION = 'v3.1.0-enhanced-stats';
+const BOT_VERSION = 'v3.2.0-enhanced-bonus-messages';
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -225,8 +225,28 @@ async function processReferralBonus(inviterId, inviteeId, inviteeData) {
       createdAt: new Date()
     });
     
-    // Уведомляем пригласившего
-    await sendMessage(inviterId, `🎉 +$${REF_BONUS} за приглашённого @${inviteeData.username || inviteeData.firstName}!`);
+            // Уведомляем пригласившего
+            const inviterUpdated = await db.collection('users').findOne({ telegramId: inviterId });
+            const inviterBalance = inviterUpdated ? inviterUpdated.balance : 0;
+            const inviterReferrals = inviterUpdated ? inviterUpdated.referralsCount : 0;
+            
+            const bonusMessage = `💰 <b>Ваш счет пополнен на $${REF_BONUS}!</b>
+
+🎉 <b>Поздравляем!</b> Вы получили бонус за приглашённого пользователя @${inviteeData.username || inviteeData.firstName}!
+
+📊 <b>Ваша статистика:</b>
+💵 Текущий баланс: <b>$${inviterBalance}</b>
+👥 Приглашено друзей: <b>${inviterReferrals}</b>
+🎯 Заработано с рефералов: <b>$${inviterReferrals * REF_BONUS}</b>
+
+🚀 <b>Продолжайте приглашать друзей и увеличивайте свой доход!</b>
+
+🔗 <b>Ваша реферальная ссылка:</b>
+<code>https://t.me/energy_m_bot?start=ref_${inviterId}</code>
+
+💡 <b>Совет:</b> Пригласите 2 друзей и играйте бесплатно!`;
+
+            await sendMessage(inviterId, bonusMessage);
     
     console.log('✅ Реферальный бонус начислен:', inviterId, '->', inviteeId);
     return true;
@@ -342,19 +362,33 @@ app.post('/webhook', async (req, res) => {
               createdAt: new Date()
             });
             
-            const bonusMessage = `🎉 <b>Добро пожаловать в Energy of Money!</b>
+            const userUpdated = await db.collection('users').findOne({ telegramId: userId });
+            const userBalance = userUpdated ? userUpdated.balance : 0;
+            const userReferrals = userUpdated ? userUpdated.referralsCount : 0;
+            
+            const bonusMessage = `💰 <b>Ваш счет пополнен на $${REF_BONUS}!</b>
 
-💰 <b>Вы получили $${REF_BONUS} на баланс!</b>
+🎉 <b>Добро пожаловать в Energy of Money!</b>
+Добро пожаловать в мир бесконечных возможностей, где каждый клик может изменить вашу жизнь!
+
+📊 <b>Ваша статистика:</b>
+💵 Текущий баланс: <b>$${userBalance}</b>
+👥 Приглашено друзей: <b>${userReferrals}</b>
+🎯 Потенциальный доход: <b>$${userReferrals * REF_BONUS}</b>
 
 🎮 <b>Стоимость игры: $20</b>
-👥 <b>Пригласите друга и играйте бесплатно!</b>
+👥 <b>Пригласите 2 друзей и играйте бесплатно!</b>
 
 🔗 <b>Ваша реферальная ссылка:</b>
 <code>https://t.me/energy_m_bot?start=ref_${userId}</code>
 
-💡 <b>За каждого приглашённого друга вы получите $${REF_BONUS} на баланс!</b>
+💡 <b>Как зарабатывать:</b>
+• Отправьте ссылку другу
+• Он переходит и жмёт Start
+• Вы получаете $${REF_BONUS} на баланс
+• Бонусы можно тратить в игре и турнирах
 
-🚀 Начните играть прямо сейчас!`;
+🚀 <b>Начните свой путь к финансовой свободе прямо сейчас!</b>`;
             
             await sendMessage(chatId, bonusMessage, getMainMenu());
           }
@@ -489,19 +523,33 @@ app.post('/webhook', async (req, res) => {
               createdAt: new Date()
             });
             
-            const message = `🎉 <b>Специальное предложение!</b>
+            const userUpdated = await db.collection('users').findOne({ telegramId: user.telegramId });
+            const userBalance = userUpdated ? userUpdated.balance : 0;
+            const userReferrals = userUpdated ? userUpdated.referralsCount : 0;
+            
+            const message = `💰 <b>Ваш счет пополнен на $${REF_BONUS}!</b>
 
-💰 <b>Вам начислен приветственный бонус $${REF_BONUS}!</b>
+🎉 <b>Специальное предложение!</b>
+Мы дарим вам стартовый капитал для начала вашего пути к успеху!
+
+📊 <b>Ваша статистика:</b>
+💵 Текущий баланс: <b>$${userBalance}</b>
+👥 Приглашено друзей: <b>${userReferrals}</b>
+🎯 Заработано с рефералов: <b>$${userReferrals * REF_BONUS}</b>
 
 🎮 <b>Стоимость игры: $20</b>
-👥 <b>Пригласите друга и играйте бесплатно!</b>
+👥 <b>Пригласите 2 друзей и играйте бесплатно!</b>
 
 🔗 <b>Ваша реферальная ссылка:</b>
 <code>https://t.me/energy_m_bot?start=ref_${user.telegramId}</code>
 
-💡 <b>За каждого приглашённого друга вы получите $${REF_BONUS} на баланс!</b>
+💡 <b>Как зарабатывать:</b>
+• Отправьте ссылку другу
+• Он переходит и жмёт Start
+• Вы получаете $${REF_BONUS} на баланс
+• Бонусы можно тратить в игре и турнирах
 
-🚀 Начните играть прямо сейчас!`;
+🚀 <b>Начните свой путь к финансовой свободе прямо сейчас!</b>`;
             
             await sendMessage(user.telegramId, message);
             successCount++;
