@@ -3,7 +3,7 @@ const fetch = require('node-fetch');
 const { MongoClient } = require('mongodb');
 
 // Версия бота
-const BOT_VERSION = 'v2.3.3-add-welcome-image';
+const BOT_VERSION = 'v2.3.4-fix-db-parameter';
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -110,7 +110,7 @@ async function sendWelcomeBonus(chatId, userId) {
 }
 
 // Функция начисления бонусов всем пользователям (админская)
-async function giveWelcomeBonusToAll() {
+async function giveWelcomeBonusToAll(db) {
   try {
     const users = await db.collection('users').find({}).toArray();
     console.log(`👥 Найдено пользователей для начисления бонуса: ${users.length}`);
@@ -509,7 +509,7 @@ app.post('/webhook', async (req, res) => {
       } else if (text === '/admin_give_bonus' && ADMIN_IDS.includes(userId)) {
         // Админская команда для начисления бонусов всем пользователям
         await sendMessage(chatId, '🔄 Начинаю начисление бонусов всем пользователям...');
-        const result = await giveWelcomeBonusToAll();
+        const result = await giveWelcomeBonusToAll(db);
         await sendMessage(chatId, `📊 Результат: ${result.message}`);
       } else if (text === '/admin_stats' && ADMIN_IDS.includes(userId)) {
         // Админская команда для просмотра статистики
