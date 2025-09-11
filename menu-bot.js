@@ -108,6 +108,9 @@ function getMainMenu() {
       [
         { text: '💰 Доход' },
         { text: '🎮 Играть' }
+      ],
+      [
+        { text: '📤 Пригласить' }
       ]
     ],
     resize_keyboard: true,
@@ -176,22 +179,37 @@ function getClientsMessage() {
 }
 
 // Доход (реферальная программа)
-function getEarnMessage(userId) {
+async function getEarnMessage(userId) {
   const refLink = `https://t.me/energy_m_bot?start=ref_${userId}`;
-  return `💰 <b>Доход</b>
+  
+  // Получаем данные пользователя из БД
+  let userData = { balance: 0, referralsCount: 0 };
+  try {
+    if (db) {
+      const user = await db.collection('users').findOne({ telegramId: userId });
+      if (user) {
+        userData = { balance: user.balance || 0, referralsCount: user.referralsCount || 0 };
+      }
+    }
+  } catch (error) {
+    console.error('❌ Ошибка получения данных пользователя:', error);
+  }
+  
+  return `💰 <b>Реферальная программа</b>
 
-Хочешь зарабатывать вместе с «<b>Энергией Денег</b>»?  
-Стань партнёром проекта и получай доход, играя и помогая другим людям развиваться.
+💵 <b>Ваш баланс:</b> $${userData.balance}
+👥 <b>Приглашено:</b> ${userData.referralsCount} человек
 
-💎 <b>Возможности:</b>
-• Партнёрская программа
-• Реферальные бонусы
-• Совместные проекты
-• Монетизация навыков
+🔗 <b>Ваша ссылка:</b>
+<code>${refLink}</code>
 
-🚀 <b>Начни зарабатывать уже сегодня!</b>
+💡 <b>Как это работает:</b>
+• Отправьте ссылку другу
+• Он переходит и жмёт Start
+• Вы получаете $10 на баланс
+• Бонусы можно тратить в игре и турнирах
 
-Нажми кнопку "💰 Доход" еще раз для подачи заявки!`;
+🎯 <b>Начните приглашать прямо сейчас!</b>`;
 }
 
 // Играть
@@ -335,14 +353,29 @@ app.post('/webhook', async (req, res) => {
         }, 2000);
       } else if (text === '💰 Доход') {
         // Отправляем картинку с текстом
-        await sendPhoto(chatId, 'https://drive.google.com/uc?export=view&id=1P_RJ8gYipADlTL8zHVXmyEdgzTbwJn_8', getEarnMessage(userId));
+        await sendPhoto(chatId, 'https://drive.google.com/uc?export=view&id=1P_RJ8gYipADlTL8zHVXmyEdgzTbwJn_8', await getEarnMessage(userId));
         
         // Отправляем дополнительное сообщение с реферальной программой
         setTimeout(async () => {
           const refLink = `https://t.me/energy_m_bot?start=ref_${userId}`;
+          
+          // Получаем данные пользователя из БД
+          let userData = { balance: 0, referralsCount: 0 };
+          try {
+            if (db) {
+              const user = await db.collection('users').findOne({ telegramId: userId });
+              if (user) {
+                userData = { balance: user.balance || 0, referralsCount: user.referralsCount || 0 };
+              }
+            }
+          } catch (error) {
+            console.error('❌ Ошибка получения данных пользователя:', error);
+          }
+          
           await sendMessage(chatId, 
             '💰 <b>Реферальная программа</b>\n\n' +
-            'Приглашайте друзей и получайте $' + REF_BONUS + ' за каждого нового участника!\n\n' +
+            '💵 <b>Ваш баланс:</b> $' + userData.balance + '\n' +
+            '👥 <b>Приглашено:</b> ' + userData.referralsCount + ' человек\n\n' +
             '🔗 <b>Ваша ссылка:</b>\n<code>' + refLink + '</code>\n\n' +
             '💡 <b>Как это работает:</b>\n' +
             '• Отправьте ссылку другу\n' +
@@ -353,6 +386,36 @@ app.post('/webhook', async (req, res) => {
             getMainMenu()
           );
         }, 2000);
+      } else if (text === '📤 Пригласить') {
+        // Отправляем реферальную ссылку в ЛС
+        const refLink = `https://t.me/energy_m_bot?start=ref_${userId}`;
+        
+        // Получаем данные пользователя из БД
+        let userData = { balance: 0, referralsCount: 0 };
+        try {
+          if (db) {
+            const user = await db.collection('users').findOne({ telegramId: userId });
+            if (user) {
+              userData = { balance: user.balance || 0, referralsCount: user.referralsCount || 0 };
+            }
+          }
+        } catch (error) {
+          console.error('❌ Ошибка получения данных пользователя:', error);
+        }
+        
+        await sendMessage(chatId, 
+          '📤 <b>Пригласить друзей</b>\n\n' +
+          '💵 <b>Ваш баланс:</b> $' + userData.balance + '\n' +
+          '👥 <b>Приглашено:</b> ' + userData.referralsCount + ' человек\n\n' +
+          '🔗 <b>Ваша реферальная ссылка:</b>\n\n' +
+          '<code>' + refLink + '</code>\n\n' +
+          '💡 <b>Как использовать:</b>\n' +
+          '• Скопируйте ссылку выше\n' +
+          '• Отправьте другу в любом мессенджере\n' +
+          '• Когда он перейдёт и нажмёт Start - вы получите $' + REF_BONUS + '\n\n' +
+          '🎯 <b>Приглашайте и зарабатывайте!</b>',
+          getMainMenu()
+        );
       } else if (text === '🎮 Играть') {
         // Отправляем картинку с текстом
         await sendPhoto(chatId, 'https://drive.google.com/uc?export=view&id=1TKi83s951WoB4FRONr8DnAITmZ8jCyfA', getPlayMessage());
