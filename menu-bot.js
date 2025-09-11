@@ -3,7 +3,7 @@ const fetch = require('node-fetch');
 const { MongoClient } = require('mongodb');
 
 // Версия бота
-const BOT_VERSION = 'v2.3.5-fix-db-collections';
+const BOT_VERSION = 'v2.3.6-save-users-to-db';
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -412,6 +412,31 @@ app.post('/webhook', async (req, res) => {
         photo: message.from.photo_url || ''
       };
       users.set(userId, userData);
+      
+      // Сохраняем/обновляем пользователя в БД
+      if (db) {
+        try {
+          await db.collection('users').updateOne(
+            { telegramId: userId },
+            { 
+              $set: {
+                telegramId: userId,
+                username: message.from.username,
+                firstName: message.from.first_name,
+                updatedAt: new Date()
+              },
+              $setOnInsert: {
+                balance: 0,
+                referralsCount: 0,
+                createdAt: new Date()
+              }
+            },
+            { upsert: true }
+          );
+        } catch (error) {
+          console.error('❌ Ошибка сохранения пользователя в БД:', error);
+        }
+      }
 
       if (text === '/start') {
         // Отправляем картинку с приветственным сообщением
