@@ -3,7 +3,7 @@ const fetch = require('node-fetch');
 const { MongoClient } = require('mongodb');
 
 // Версия бота
-const BOT_VERSION = 'v2.3.2-remove-invite-button';
+const BOT_VERSION = 'v2.3.3-add-welcome-image';
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -388,7 +388,9 @@ app.post('/webhook', async (req, res) => {
       users.set(userId, userData);
 
       if (text === '/start') {
-        await sendMessage(chatId, getWelcomeMessage(), getMainMenu());
+        // Отправляем картинку с приветственным сообщением
+        await sendPhoto(chatId, 'https://drive.google.com/uc?export=view&id=1DVFh1fEm5CG0crg_OYWKBrLIjnmgwjm8', getWelcomeMessage());
+        await sendMessage(chatId, 'Выберите действие:', getMainMenu());
         // Отправляем приветственный бонус через 30 секунд
         setTimeout(() => {
           sendWelcomeBonus(chatId, userId);
@@ -434,17 +436,21 @@ app.post('/webhook', async (req, res) => {
                 // Приветствуем нового пользователя
                 await sendMessage(chatId, `🎉 Добро пожаловать! Вы пришли по приглашению.`, getMainMenu());
               } else {
-                await sendMessage(chatId, getWelcomeMessage(), getMainMenu());
+                await sendPhoto(chatId, 'https://drive.google.com/uc?export=view&id=1DVFh1fEm5CG0crg_OYWKBrLIjnmgwjm8', getWelcomeMessage());
+                await sendMessage(chatId, 'Выберите действие:', getMainMenu());
               }
             } else {
-              await sendMessage(chatId, getWelcomeMessage(), getMainMenu());
+              await sendPhoto(chatId, 'https://drive.google.com/uc?export=view&id=1DVFh1fEm5CG0crg_OYWKBrLIjnmgwjm8', getWelcomeMessage());
+              await sendMessage(chatId, 'Выберите действие:', getMainMenu());
             }
           } catch (error) {
             console.error('❌ Ошибка обработки реферальной ссылки:', error);
-            await sendMessage(chatId, getWelcomeMessage(), getMainMenu());
+            await sendPhoto(chatId, 'https://drive.google.com/uc?export=view&id=1DVFh1fEm5CG0crg_OYWKBrLIjnmgwjm8', getWelcomeMessage());
+            await sendMessage(chatId, 'Выберите действие:', getMainMenu());
           }
         } else {
-          await sendMessage(chatId, getWelcomeMessage(), getMainMenu());
+          await sendPhoto(chatId, 'https://drive.google.com/uc?export=view&id=1DVFh1fEm5CG0crg_OYWKBrLIjnmgwjm8', getWelcomeMessage());
+          await sendMessage(chatId, 'Выберите действие:', getMainMenu());
         }
       } else if (text === '📖 О проекте') {
         // Отправляем картинку с текстом
