@@ -3,7 +3,7 @@ const fetch = require('node-fetch');
 const { MongoClient } = require('mongodb');
 
 // Версия бота
-const BOT_VERSION = 'v3.0.0-complete-rewrite';
+const BOT_VERSION = 'v3.1.0-enhanced-stats';
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -383,18 +383,89 @@ app.post('/webhook', async (req, res) => {
         
       } else if (text === '/admin_stats' && ADMIN_IDS.includes(userId)) {
         // Админская статистика
-        const users = await db.collection('users').find({}).toArray();
+        const users = await db.collection('users').find({}).sort({ createdAt: -1 }).toArray();
         const totalBalance = users.reduce((sum, user) => sum + (user.balance || 0), 0);
         const totalReferrals = users.reduce((sum, user) => sum + (user.referralsCount || 0), 0);
         
-        const statsMessage = `📊 <b>Статистика бота</b>
+        let statsMessage = `📊 <b>Статистика бота</b>
 
 👥 Всего пользователей: ${users.length}
 💰 Общий баланс: $${totalBalance}
 👥 Всего рефералов: ${totalReferrals}
-🎯 Средний баланс: $${users.length > 0 ? (totalBalance / users.length).toFixed(2) : 0}`;
+🎯 Средний баланс: $${users.length > 0 ? (totalBalance / users.length).toFixed(2) : 0}
+
+👥 <b>Список пользователей:</b>`;
+        
+        if (users.length === 0) {
+          statsMessage += '\n❌ Пользователей нет';
+        } else if (users.length <= 10) {
+          // Показываем всех пользователей если их 10 или меньше
+          users.forEach((user, index) => {
+            const username = user.username ? `@${user.username}` : 'N/A';
+            const balance = user.balance || 0;
+            const referrals = user.referralsCount || 0;
+            const regDate = user.createdAt ? new Date(user.createdAt).toLocaleDateString('ru-RU') : 'N/A';
+            
+            statsMessage += `\n${index + 1}. ${username} | $${balance} | ${referrals} реф. | ${regDate}`;
+          });
+        } else {
+          // Показываем первых 10 пользователей
+          statsMessage += `\n(Показаны первые 10 из ${users.length})`;
+          users.slice(0, 10).forEach((user, index) => {
+            const username = user.username ? `@${user.username}` : 'N/A';
+            const balance = user.balance || 0;
+            const referrals = user.referralsCount || 0;
+            const regDate = user.createdAt ? new Date(user.createdAt).toLocaleDateString('ru-RU') : 'N/A';
+            
+            statsMessage += `\n${index + 1}. ${username} | $${balance} | ${referrals} реф. | ${regDate}`;
+          });
+          
+          statsMessage += `\n\n💡 Используйте /admin_stats_page2 для следующей страницы`;
+        }
         
         await sendMessage(chatId, statsMessage);
+        
+      } else if (text.startsWith('/admin_stats_page') && ADMIN_IDS.includes(userId)) {
+        // Пагинация статистики
+        const page = parseInt(text.replace('/admin_stats_page', '')) || 1;
+        const usersPerPage = 10;
+        const skip = (page - 1) * usersPerPage;
+        
+        const users = await db.collection('users').find({}).sort({ createdAt: -1 }).toArray();
+        const totalPages = Math.ceil(users.length / usersPerPage);
+        const pageUsers = users.slice(skip, skip + usersPerPage);
+        
+        if (page > totalPages || page < 1) {
+          await sendMessage(chatId, `❌ Страница ${page} не найдена. Доступно страниц: ${totalPages}`);
+          return;
+        }
+        
+        let pageMessage = `📊 <b>Статистика бота - Страница ${page}/${totalPages}</b>
+
+👥 Пользователи ${skip + 1}-${Math.min(skip + usersPerPage, users.length)} из ${users.length}:`;
+        
+        pageUsers.forEach((user, index) => {
+          const username = user.username ? `@${user.username}` : 'N/A';
+          const balance = user.balance || 0;
+          const referrals = user.referralsCount || 0;
+          const regDate = user.createdAt ? new Date(user.createdAt).toLocaleDateString('ru-RU') : 'N/A';
+          
+          pageMessage += `\n${skip + index + 1}. ${username} | $${balance} | ${referrals} реф. | ${regDate}`;
+        });
+        
+        // Навигация по страницам
+        if (totalPages > 1) {
+          pageMessage += `\n\n📄 <b>Навигация:</b>`;
+          if (page > 1) {
+            pageMessage += `\n⬅️ /admin_stats_page${page - 1}`;
+          }
+          if (page < totalPages) {
+            pageMessage += `\n➡️ /admin_stats_page${page + 1}`;
+          }
+          pageMessage += `\n🏠 /admin_stats - общая статистика`;
+        }
+        
+        await sendMessage(chatId, pageMessage);
         
       } else if (text === '/admin_give_bonus' && ADMIN_IDS.includes(userId)) {
         // Начисление бонусов всем
