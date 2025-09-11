@@ -3,7 +3,7 @@ const fetch = require('node-fetch');
 const { MongoClient } = require('mongodb');
 
 // Версия бота
-const BOT_VERSION = 'v2.2.0-welcome-bonus';
+const BOT_VERSION = 'v2.3.0-admin-bonus';
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -11,6 +11,7 @@ const BOT_TOKEN = process.env.BOT_TOKEN || '8480976603:AAGwXGSfMAMQkndmNX7JFe2aZ
 const GAME_URL = 'https://botenergy-7to1-production.up.railway.app';
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/energy888';
 const REF_BONUS = parseInt(process.env.REF_BONUS || '10', 10);
+const ADMIN_IDS = [123456789]; // Замените на ваш Telegram ID
 
 const TELEGRAM_API = `https://api.telegram.org/bot${BOT_TOKEN}`;
 
@@ -105,6 +106,78 @@ async function sendWelcomeBonus(chatId, userId) {
     }
   } catch (error) {
     console.error('❌ Ошибка при отправке приветственного бонуса:', error);
+  }
+}
+
+// Функция начисления бонусов всем пользователям (админская)
+async function giveWelcomeBonusToAll() {
+  try {
+    const users = await db.collection('users').find({}).toArray();
+    console.log(`👥 Найдено пользователей для начисления бонуса: ${users.length}`);
+    
+    if (users.length === 0) {
+      return { success: 0, errors: 0, message: 'Пользователей в базе нет' };
+    }
+    
+    let successCount = 0;
+    let errorCount = 0;
+    
+    for (const user of users) {
+      try {
+        // Начисляем бонус
+        await db.collection('users').updateOne(
+          { telegramId: user.telegramId },
+          { 
+            $inc: { balance: REF_BONUS },
+            $set: { updatedAt: new Date() }
+          }
+        );
+        
+        // Записываем транзакцию
+        await db.collection('transactions').insertOne({
+          type: 'welcome_bonus_retroactive',
+          amount: REF_BONUS,
+          userId: user.telegramId,
+          createdAt: new Date()
+        });
+        
+        // Отправляем сообщение
+        const message = `🎉 <b>Специальное предложение!</b>\n\n` +
+          `💰 <b>Вам начислен приветственный бонус $${REF_BONUS}!</b>\n\n` +
+          `🎮 <b>Стоимость игры: $20</b>\n` +
+          `👥 <b>Пригласите друга и играйте бесплатно!</b>\n\n` +
+          `🔗 <b>Ваша реферальная ссылка:</b>\n` +
+          `<code>https://t.me/energy_m_bot?start=ref_${user.telegramId}</code>\n\n` +
+          `💡 <b>За каждого приглашённого друга вы получите $${REF_BONUS} на баланс!</b>\n\n` +
+          `🚀 Начните играть прямо сейчас!`;
+        
+        const result = await sendMessage(user.telegramId, message);
+        
+        if (result && result.ok) {
+          successCount++;
+        } else {
+          errorCount++;
+        }
+        
+        // Небольшая задержка между отправками
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+      } catch (error) {
+        console.error(`❌ Ошибка обработки пользователя ${user.telegramId}:`, error);
+        errorCount++;
+      }
+    }
+    
+    return { 
+      success: successCount, 
+      errors: errorCount, 
+      total: users.length,
+      message: `Начислено бонусов: ${successCount}, Ошибок: ${errorCount}, Всего пользователей: ${users.length}`
+    };
+    
+  } catch (error) {
+    console.error('❌ Ошибка начисления бонусов:', error);
+    return { success: 0, errors: 0, message: 'Ошибка: ' + error.message };
   }
 }
 
@@ -492,6 +565,28 @@ app.post('/webhook', async (req, res) => {
             await sendMessage(chatId, '❌ Ошибка: данные пользователя не найдены', getMainMenu());
           }
         }, 2000);
+      } else if (text === '/admin_give_bonus' && ADMIN_IDS.includes(userId)) {
+        // Админская команда для начисления бонусов всем пользователям
+        await sendMessage(chatId, '🔄 Начинаю начисление бонусов всем пользователям...');
+        const result = await giveWelcomeBonusToAll();
+        await sendMessage(chatId, `📊 Результат: ${result.message}`);
+      } else if (text === '/admin_stats' && ADMIN_IDS.includes(userId)) {
+        // Админская команда для просмотра статистики
+        try {
+          const users = await db.collection('users').find({}).toArray();
+          const totalBalance = users.reduce((sum, user) => sum + (user.balance || 0), 0);
+          const totalReferrals = users.reduce((sum, user) => sum + (user.referralsCount || 0), 0);
+          
+          const statsMessage = `📊 <b>Статистика бота</b>\n\n` +
+            `👥 Всего пользователей: ${users.length}\n` +
+            `💰 Общий баланс: $${totalBalance}\n` +
+            `👥 Всего рефералов: ${totalReferrals}\n` +
+            `🎯 Средний баланс: $${users.length > 0 ? (totalBalance / users.length).toFixed(2) : 0}`;
+          
+          await sendMessage(chatId, statsMessage);
+        } catch (error) {
+          await sendMessage(chatId, '❌ Ошибка получения статистики: ' + error.message);
+        }
       } else {
         await sendMessage(chatId, 
           '❓ Неизвестная команда. Используй кнопки меню для навигации.',
