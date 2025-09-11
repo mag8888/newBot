@@ -3,7 +3,7 @@ const fetch = require('node-fetch');
 const { MongoClient } = require('mongodb');
 
 // Версия бота
-const BOT_VERSION = 'v2.1.3-ad4f113';
+const BOT_VERSION = 'v2.2.0-welcome-bonus';
 
 const app = express();
 const PORT = process.env.PORT || 8080;
@@ -65,6 +65,46 @@ async function sendMessage(chatId, text, replyMarkup = null) {
   } catch (error) {
     console.error('❌ Ошибка отправки сообщения:', error);
     return null;
+  }
+}
+
+// Функция отправки приветственного бонуса
+async function sendWelcomeBonus(chatId, userId) {
+  try {
+    // Проверяем, что пользователь новый
+    const existingUser = await db.collection('users').findOne({ telegramId: userId });
+    if (!existingUser) {
+      // Создаём пользователя с бонусом
+      await db.collection('users').insertOne({
+        telegramId: userId,
+        balance: REF_BONUS,
+        referralsCount: 0,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+      
+      // Записываем транзакцию
+      await db.collection('transactions').insertOne({
+        type: 'welcome_bonus',
+        amount: REF_BONUS,
+        userId: userId,
+        createdAt: new Date()
+      });
+      
+      // Отправляем сообщение с бонусом
+      const bonusMessage = `🎉 <b>Добро пожаловать в Energy of Money!</b>\n\n` +
+        `💰 <b>Вы получили $${REF_BONUS} на баланс!</b>\n\n` +
+        `🎮 <b>Стоимость игры: $20</b>\n` +
+        `👥 <b>Пригласите друга и играйте бесплатно!</b>\n\n` +
+        `🔗 <b>Ваша реферальная ссылка:</b>\n` +
+        `<code>https://t.me/energy_m_bot?start=ref_${userId}</code>\n\n` +
+        `💡 <b>За каждого приглашённого друга вы получите $${REF_BONUS} на баланс!</b>\n\n` +
+        `🚀 Начните играть прямо сейчас!`;
+      
+      await sendMessage(chatId, bonusMessage, getMainMenu());
+    }
+  } catch (error) {
+    console.error('❌ Ошибка при отправке приветственного бонуса:', error);
   }
 }
 
@@ -200,6 +240,9 @@ async function getEarnMessage(userId) {
 💵 <b>Ваш баланс:</b> $${userData.balance}
 👥 <b>Приглашено:</b> ${userData.referralsCount} человек
 
+🎮 <b>Стоимость игры: $20</b>
+👥 <b>Пригласите друга и играйте бесплатно!</b>
+
 🔗 <b>Ваша ссылка:</b>
 <code>${refLink}</code>
 
@@ -276,6 +319,10 @@ app.post('/webhook', async (req, res) => {
 
       if (text === '/start') {
         await sendMessage(chatId, getWelcomeMessage(), getMainMenu());
+        // Отправляем приветственный бонус через 30 секунд
+        setTimeout(() => {
+          sendWelcomeBonus(chatId, userId);
+        }, 30000);
       } else if (text.startsWith('/start ref_')) {
         // Обработка реферальной ссылки
         const refId = text.replace('/start ref_', '');
