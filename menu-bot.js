@@ -1,6 +1,9 @@
 const express = require('express');
 const fetch = require('node-fetch');
 
+// Версия бота
+const BOT_VERSION = 'v2.1.3-ad4f113';
+
 const app = express();
 const PORT = process.env.PORT || 8080;
 const BOT_TOKEN = process.env.BOT_TOKEN || '8480976603:AAGwXGSfMAMQkndmNX7JFe2aZDI6zSTXc_4';
@@ -345,7 +348,7 @@ process.on('unhandledRejection', (reason, promise) => {
 
 // Запуск сервера
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 Menu Bot Server запущен на порту ${PORT}`);
+  console.log(`🚀 Menu Bot Server v${BOT_VERSION} запущен на порту ${PORT}`);
   console.log(`🤖 Bot Token: ${BOT_TOKEN ? '✅ Установлен' : '❌ Не установлен'}`);
   console.log(`🎮 Game URL: ${GAME_URL}`);
   console.log(`🌍 Server listening on 0.0.0.0:${PORT}`);
