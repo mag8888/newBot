@@ -416,7 +416,8 @@ app.post('/webhook', async (req, res) => {
       // Сохраняем/обновляем пользователя в БД
       if (db) {
         try {
-          await db.collection('users').updateOne(
+          console.log('💾 Сохраняем пользователя в БД:', userId);
+          const result = await db.collection('users').updateOne(
             { telegramId: userId },
             { 
               $set: {
@@ -433,9 +434,12 @@ app.post('/webhook', async (req, res) => {
             },
             { upsert: true }
           );
+          console.log('✅ Пользователь сохранен в БД:', result);
         } catch (error) {
           console.error('❌ Ошибка сохранения пользователя в БД:', error);
         }
+      } else {
+        console.error('❌ База данных не подключена!');
       }
 
       if (text === '/start') {
